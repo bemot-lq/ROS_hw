@@ -85,4 +85,5 @@ class gridPathFinder
 		void showGridPathFun();
 		vector<Eigen::Vector3d> showGridPath;
 		void modifyOpenset(GridNodePtr node);
+		double heuristicFunction(Eigen::Vector3d pos_1,Eigen::Vector3d pos_2);
 };

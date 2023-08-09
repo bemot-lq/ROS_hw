@@ -1,8 +1,7 @@
 /*
 1.代价函数根号2与1,启发函数是不是对角函数
-2.测试mutlimap的擦除机制，没擦除也能用
+
 3.编写函数18通路函数，简化
-4.关于数组索引问题
 5.路径更新，清除之前路径
 6。为什么时间会有问题。
 7.
@@ -36,20 +35,6 @@ void gridPathFinder::initGridMap(double _resolution, Vector3d global_xyz_l, Vect
     data = new uint8_t[GLXYZ_SIZE];                // 点云数组
     memset(data, 0, GLXYZ_SIZE * sizeof(uint8_t)); // 给data全赋0
 
-    // 将不同坐标系下的同一点放在类成员中进行管理
-    /*
-        GridNode(Eigen::Vector3i _index, Eigen::Vector3d _coord){
-        id = 0;
-        is_path = false;
-        index = _index;
-        coord = _coord;
-        dir   = Eigen::Vector3i::Zero();
-
-        gScore = inf;
-        fScore = inf;
-        cameFrom = NULL;
-
-    */
     GridNodeMap = new GridNodePtr **[GLX_SIZE]; // 使用指针构建三维数组，GridNodeMap只是一个三维指针数组和GridNode类型不同
     for (int i = 0; i < GLX_SIZE; i++)
     {
@@ -119,10 +104,8 @@ void gridPathFinder::astarGraphSearch(const Eigen::Vector3d start_pt, const Eige
     target = GridNodeMap[target_idx(0)][target_idx(1)][target_idx(2)];
 
     start->id = 1;
-    start->fScore = fabs(start->coord(0) - target->coord(0)) +
-                    fabs(start->coord(1) - target->coord(1)) +
-                    fabs(start->coord(2) - target->coord(2));
-    openSet.insert({start->gScore + start->fScore, start});
+    start->fScore = start->gScore +heuristicFunction(start->coord,target->coord);
+    openSet.insert({start->fScore, start});
 
     while (!openSet.empty() || notReachTarget)
     {
@@ -262,10 +245,8 @@ void gridPathFinder::expandNode(GridNodePtr node, GridNodePtr node_1)
         node_1->id = 1;
         node_1->cameFrom = node;
         node_1->gScore = node->gScore + 1;
-        node_1->fScore = fabs(node_1->coord(0) - target->coord(0)) +
-                         fabs(node_1->coord(1) - target->coord(1)) +
-                         fabs(node_1->coord(2) - target->coord(2));
-        openSet.insert({node_1->gScore + node_1->fScore, node_1});
+        node_1->fScore = node_1->gScore+heuristicFunction(node_1->coord,target->coord);
+        openSet.insert({node_1->fScore, node_1});
         return;
     }
     // id=1,计算score与现有score比较
@@ -275,9 +256,10 @@ void gridPathFinder::expandNode(GridNodePtr node, GridNodePtr node_1)
         if (node_1->gScore > node->gScore + 1)
         {
             node_1->cameFrom = node;
-            node_1->gScore = node->gScore + 1;
+            node_1->gScore+=node->gScore + 1;
+            node_1->fScore+=1;
             modifyOpenset(node_1);//更新
-            openSet.insert({node_1->gScore + node_1->fScore, node_1});
+            openSet.insert({node_1->fScore, node_1});
         }
         return;
     }
@@ -303,7 +285,7 @@ void gridPathFinder::modifyOpenset(GridNodePtr node)
     //equal_range——已知key，查找key的起始迭代器和终止迭代器
     //
     pair<std::multimap<double, GridNodePtr>::iterator,std::multimap<double, GridNodePtr>::iterator> 
-                                                ret=openSet.equal_range(node->fScore+node->gScore);
+                                                ret=openSet.equal_range(node->fScore);
     int iterator_num=0;
     std::multimap<double, GridNodePtr>::iterator target_pos;
     for(auto pos=ret.first;pos!=ret.second;++pos)
@@ -321,4 +303,14 @@ void gridPathFinder::modifyOpenset(GridNodePtr node)
         
     }
     openSet.erase(target_pos);
+}
+
+double gridPathFinder::heuristicFunction(Eigen::Vector3d pos_1,Eigen::Vector3d pos_2)
+{
+    //曼哈顿距离
+    return fabs(pos_1(0) - pos_2(0)) +
+           fabs(pos_1(1) - pos_2(1)) +
+           fabs(pos_1(2) - pos_2(2));
+    //欧式距离，避免开方运算
+    //对角距离，能18通路请况下
 }
