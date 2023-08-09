@@ -84,4 +84,5 @@ class gridPathFinder
 		void expandNode(GridNodePtr node,GridNodePtr node_1);
 		void showGridPathFun();
 		vector<Eigen::Vector3d> showGridPath;
+		void modifyOpenset(GridNodePtr node);
 };
